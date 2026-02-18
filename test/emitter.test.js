@@ -54,7 +54,7 @@ describe('createEmitter', () => {
 
   it('passes payload through unmodified', () => {
     const emitter = createEmitter()
-    const payload = { toolName: 'bash', args: { command: 'ls' } }
+    const payload = { toolName: 'list_dir', args: { dirPath: '.' } }
     let captured
 
     emitter.on('tool:start', (p) => { captured = p })

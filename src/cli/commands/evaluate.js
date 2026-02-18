@@ -2,17 +2,18 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { loadConfig } from '../../config/index.js'
 import { runAgent } from '../../agent/index.js'
-import { saveArtifact, ensureProjectDir } from '../../project/index.js'
-import { startTask, endTask, logStep, logError, showReport } from '../../ui/index.js'
+import { ensureProjectDir } from '../../project/index.js'
+import { startTask, endTask, logStep, logError, logSuccess } from '../../ui/index.js'
 import { createEmitter } from '../../events/emitter.js'
 import { createDisplay } from '../../ui/display.js'
+import { formatSummary } from '../../ui/summary.js'
 
 export function registerEvaluateCommand(program) {
   program
     .command('evaluate')
     .description('Evaluate a codebase for conversion feasibility')
     .requiredOption('-i, --input <dir>', 'Input directory containing the source code')
-    .option('-d, --destination <language>', 'Target language for conversion assessment')
+    .requiredOption('-d, --destination <language>', 'Target language for conversion assessment')
     .action(async (options, cmd) => {
       const globalOpts = cmd.parent.opts()
 
@@ -33,30 +34,37 @@ export function registerEvaluateCommand(program) {
       }
 
       logStep(`Evaluating codebase: ${inputDir}`)
-      if (options.destination) {
-        logStep(`Target language: ${options.destination}`)
-      }
+      logStep(`Target language: ${options.destination}`)
 
       const projectDir = await ensureProjectDir(inputDir)
+      const outputDir = path.join(projectDir, 'evaluation')
+      await fs.promises.mkdir(outputDir, { recursive: true })
+
       const emitter = createEmitter()
       const display = createDisplay(emitter, { auditLogPath: path.join(projectDir, 'events.log') })
 
       try {
-        const report = await runAgent({
+        const { summary, finalOutput } = await runAgent({
           config,
           command: 'evaluate',
           inputDir,
+          outputDir,
           destination: options.destination,
           emitter,
         })
 
         display.stop()
 
-        // Save the report as an artifact
-        const artifactPath = await saveArtifact(inputDir, 'evaluation-report.md', report)
-        logStep(`Report saved to: ${artifactPath}`)
+        logSuccess(`Evaluation docs written to: ${outputDir}`)
+        console.log()
 
-        showReport(report)
+        if (summary) {
+          console.log(formatSummary(summary, outputDir))
+        } else if (finalOutput) {
+          console.log(finalOutput)
+        }
+
+        console.log()
       } catch (err) {
         display.stop()
         logError(`Evaluation failed: ${err.message}`)

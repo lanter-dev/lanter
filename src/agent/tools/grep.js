@@ -2,6 +2,7 @@ import { tool } from '@openai/agents'
 import { z } from 'zod'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { truncateToolOutput } from './truncate.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -27,9 +28,9 @@ export function createGrepTool({ inputDir }) {
         })
         const lines = stdout.trim().split('\n')
         if (lines.length > 200) {
-          return lines.slice(0, 200).join('\n') + `\n... (${lines.length - 200} more matches)`
+          return truncateToolOutput(lines.slice(0, 200).join('\n') + `\n... (${lines.length - 200} more matches)`)
         }
-        return stdout.trim() || 'No matches found.'
+        return truncateToolOutput(stdout.trim()) || 'No matches found.'
       } catch (err) {
         if (err.code === 1) {
           return 'No matches found.'

@@ -52,7 +52,7 @@ export function registerRunCommand(program) {
       const display = createDisplay(emitter, { auditLogPath: path.join(projectDir, 'events.log') })
 
       try {
-        const result = await runAgent({
+        const { finalOutput } = await runAgent({
           config,
           command: 'run',
           inputDir,
@@ -64,9 +64,9 @@ export function registerRunCommand(program) {
         display.stop()
         logSuccess(`Converted code written to: ${outputDir}`)
 
-        if (result) {
+        if (finalOutput) {
           console.log()
-          console.log(result)
+          console.log(finalOutput)
         }
       } catch (err) {
         display.stop()

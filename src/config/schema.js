@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const configSchema = z.object({
   provider: z.enum(['openai', 'anthropic', 'ollama']).optional(),
   model: z.string().optional(),
+  maxContextTokens: z.number().int().positive().optional(),
   openai: z.object({
     apiKey: z.string().optional(),
     baseUrl: z.string().url().optional(),

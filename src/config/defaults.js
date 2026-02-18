@@ -1,6 +1,7 @@
 export const defaults = {
   provider: 'openai',
   model: 'gpt-4.1',
+  maxContextTokens: 128000,
   openai: {
     apiKey: '',
     baseUrl: 'https://api.openai.com/v1',

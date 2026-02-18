@@ -8,7 +8,7 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "test": "node --test test/emitter.test.js test/history.test.js test/display.test.js"
+    "test": "node --test test/emitter.test.js test/history.test.js test/display.test.js test/task.test.js test/eval-summary.test.js test/summary.test.js test/list-dir.test.js test/file-info.test.js test/count-lines.test.js test/project-info.test.js test/glob.test.js test/truncate.test.js test/context-trimmer.test.js"
   },
   "keywords": [
     "cli",

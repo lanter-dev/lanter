@@ -2,6 +2,7 @@ import { tool } from '@openai/agents'
 import { z } from 'zod'
 import fs from 'node:fs'
 import path from 'node:path'
+import { truncateToolOutput } from './truncate.js'
 
 export function createReadTool({ inputDir, outputDir }) {
   return tool({
@@ -11,7 +12,6 @@ export function createReadTool({ inputDir, outputDir }) {
       filePath: z.string().describe('The path to the file to read'),
     }),
     async execute({ filePath }) {
-      // Resolve relative paths against inputDir first, then outputDir
       let resolved = filePath
       if (!path.isAbsolute(filePath)) {
         const inInput = path.resolve(inputDir, filePath)
@@ -21,13 +21,13 @@ export function createReadTool({ inputDir, outputDir }) {
         } else if (inOutput && fs.existsSync(inOutput)) {
           resolved = inOutput
         } else {
-          resolved = inInput // default to input dir for error message
+          resolved = inInput
         }
       }
 
       try {
         const content = await fs.promises.readFile(resolved, 'utf-8')
-        return content
+        return truncateToolOutput(content)
       } catch (err) {
         return `Error reading file ${resolved}: ${err.message}`
       }

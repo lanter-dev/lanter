@@ -1,7 +1,7 @@
 import ora from 'ora'
 import fs from 'node:fs'
 import path from 'node:path'
-import { labelForTool, formatElapsed, pushHistory } from './history.js'
+import { labelForTool, formatElapsed, pushHistory, formatTaskBoard } from './history.js'
 
 export function createDisplay(emitter, { auditLogPath, _createSpinner } = {}) {
   const history = []
@@ -9,6 +9,7 @@ export function createDisplay(emitter, { auditLogPath, _createSpinner } = {}) {
   let spinner = null
   let inferenceStart = null
   let inferenceTimer = null
+  let getTasks = null
 
   const createSpinner = _createSpinner ?? (() => ora({ stream: process.stdout }))
 
@@ -31,9 +32,18 @@ export function createDisplay(emitter, { auditLogPath, _createSpinner } = {}) {
     }
   }
 
+  function taskBoardPrefix() {
+    if (!getTasks) return ''
+    const tasks = getTasks()
+    const lines = formatTaskBoard(tasks)
+    if (lines.length === 0) return ''
+    return lines.join('\n') + '\n'
+  }
+
   function historyPrefix() {
-    if (history.length === 0) return ''
-    return history.map(l => `\x1b[2m  ✔ ${l}\x1b[0m`).join('\n') + '\n'
+    const board = taskBoardPrefix()
+    if (history.length === 0) return board
+    return board + history.map(l => `\x1b[2m  ✔ ${l}\x1b[0m`).join('\n') + '\n'
   }
 
   function ensureSpinner(text) {
@@ -54,6 +64,10 @@ export function createDisplay(emitter, { auditLogPath, _createSpinner } = {}) {
       spinner = null
     }
   }
+
+  emitter.on('tasks:init', (payload) => {
+    getTasks = payload.getTasks
+  })
 
   emitter.on('inference:start', ({ agentName } = {}) => {
     stopInferenceTimer()

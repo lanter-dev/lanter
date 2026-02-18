@@ -81,10 +81,10 @@ describe('tool:start', () => {
     display.stop()
   })
 
-  it('shows the correct bash label', () => {
+  it('shows the correct list_dir label', () => {
     const { emitter, display, spinner } = setup()
-    emitter.emit('tool:start', { toolName: 'bash', args: { command: 'ls -la' } })
-    assert.equal(spinner.text, 'bash: ls -la')
+    emitter.emit('tool:start', { toolName: 'list_dir', args: { dirPath: 'src' } })
+    assert.equal(spinner.text, 'ls: src')
     display.stop()
   })
 
@@ -100,8 +100,8 @@ describe('tool:start', () => {
   it('parallel tool:start events each enqueue a label', () => {
     const { emitter, display } = setup()
     emitter.emit('tool:start', { toolName: 'glob', args: { pattern: '**/*' } })
-    emitter.emit('tool:start', { toolName: 'bash', args: { command: 'ls' } })
-    assert.deepEqual(display._getInflight(), ['glob: **/*', 'bash: ls'])
+    emitter.emit('tool:start', { toolName: 'list_dir', args: { dirPath: 'src' } })
+    assert.deepEqual(display._getInflight(), ['glob: **/*', 'ls: src'])
     display.stop()
   })
 })
@@ -141,13 +141,13 @@ describe('tool:done (parallel)', () => {
   it('two parallel tools produce exactly two distinct history entries', () => {
     const { emitter, display } = setup()
     emitter.emit('tool:start', { toolName: 'glob', args: { pattern: '**/*' } })
-    emitter.emit('tool:start', { toolName: 'bash', args: { command: 'ls' } })
+    emitter.emit('tool:start', { toolName: 'list_dir', args: { dirPath: 'src' } })
     emitter.emit('tool:done', { toolName: 'glob', result: '' })
-    emitter.emit('tool:done', { toolName: 'bash', result: '' })
+    emitter.emit('tool:done', { toolName: 'list_dir', result: '' })
     const h = display._getHistory()
     assert.equal(h.length, 2)
     assert.ok(h.includes('glob: **/*'))
-    assert.ok(h.includes('bash: ls'))
+    assert.ok(h.includes('ls: src'))
     display.stop()
   })
 
@@ -155,25 +155,25 @@ describe('tool:done (parallel)', () => {
     const { emitter, display } = setup()
     emitter.emit('tool:start', { toolName: 'read_file', args: { filePath: '/a.js' } })
     emitter.emit('tool:start', { toolName: 'read_file', args: { filePath: '/b.js' } })
-    emitter.emit('tool:start', { toolName: 'bash',      args: { command: 'ls' } })
+    emitter.emit('tool:start', { toolName: 'list_dir',  args: { dirPath: '.' } })
     emitter.emit('tool:done',  { toolName: 'read_file', result: '' })
     emitter.emit('tool:done',  { toolName: 'read_file', result: '' })
-    emitter.emit('tool:done',  { toolName: 'bash',      result: '' })
+    emitter.emit('tool:done',  { toolName: 'list_dir',  result: '' })
     const h = display._getHistory()
     assert.equal(h.length, 3)
     assert.equal(h[0], 'read: /a.js')
     assert.equal(h[1], 'read: /b.js')
-    assert.equal(h[2], 'bash: ls')
+    assert.equal(h[2], 'ls: .')
     display.stop()
   })
 
   it('spinner stays active while tools remain in flight', () => {
     const { emitter, display, spinner } = setup()
     emitter.emit('tool:start', { toolName: 'glob', args: { pattern: '**/*' } })
-    emitter.emit('tool:start', { toolName: 'bash', args: { command: 'ls' } })
+    emitter.emit('tool:start', { toolName: 'list_dir', args: { dirPath: 'src' } })
     emitter.emit('tool:done', { toolName: 'glob', result: '' })
     assert.ok(spinner.started || !spinner.stopped, 'spinner should still be active')
-    assert.equal(spinner.text, 'bash: ls')
+    assert.equal(spinner.text, 'ls: src')
     display.stop()
   })
 
@@ -181,7 +181,7 @@ describe('tool:done (parallel)', () => {
     const { emitter, display } = setup()
     const files = ['/a.js', '/b.js', '/c.js', '/d.js']
     for (const f of files) emitter.emit('tool:start', { toolName: 'read_file', args: { filePath: f } })
-    for (const f of files) emitter.emit('tool:done',  { toolName: 'read_file', result: '' })
+    for (const _f of files) emitter.emit('tool:done',  { toolName: 'read_file', result: '' })
     const h = display._getHistory()
     assert.equal(h.length, 3)
     assert.ok(!h.includes('read: /a.js'), '/a.js should be evicted')
@@ -195,7 +195,7 @@ describe('tool:done (parallel)', () => {
     const { emitter, display, spinner } = setup()
     const files = ['/a.js', '/b.js', '/c.js', '/d.js']
     for (const f of files) emitter.emit('tool:start', { toolName: 'read_file', args: { filePath: f } })
-    for (const f of files) emitter.emit('tool:done',  { toolName: 'read_file', result: '' })
+    for (const _f of files) emitter.emit('tool:done',  { toolName: 'read_file', result: '' })
     assert.ok(!spinner.prefixText.includes('/a.js'), '/a.js should not be in prefixText')
     assert.ok(spinner.prefixText.includes('/b.js'))
     assert.ok(spinner.prefixText.includes('/c.js'))
@@ -328,6 +328,52 @@ describe('audit log', () => {
     }
 
     fs.default.unlinkSync(logPath)
+    display.stop()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Task board in prefixText
+// ---------------------------------------------------------------------------
+
+describe('task board display', () => {
+  it('shows task board in prefixText after tasks:init', () => {
+    const { emitter, display, spinner } = setup()
+    const getTasks = () => [
+      { id: '1', name: 'Convert config', status: 'done' },
+      { id: '2', name: 'Convert utils', status: 'in_progress' },
+    ]
+    emitter.emit('tasks:init', { getTasks })
+    emitter.emit('inference:start', {})
+    assert.ok(spinner.prefixText.includes('Convert config'))
+    assert.ok(spinner.prefixText.includes('Convert utils'))
+    display.stop()
+  })
+
+  it('updates task board on each spinner refresh', () => {
+    const { emitter, display, spinner } = setup()
+    const tasks = [
+      { id: '1', name: 'Task A', status: 'todo' },
+    ]
+    emitter.emit('tasks:init', { getTasks: () => tasks })
+    emitter.emit('inference:start', {})
+    assert.ok(spinner.prefixText.includes('todo') || spinner.prefixText.includes('○'))
+
+    // Mutate the task status
+    tasks[0].status = 'done'
+    toolCycle(emitter, 'glob', { pattern: '**/*' })
+    assert.ok(spinner.prefixText.includes('Task A'))
+    // Should now have strikethrough (done styling)
+    assert.ok(spinner.prefixText.includes('\x1b[9m'))
+    display.stop()
+  })
+
+  it('prefixText has no task board when no tasks:init emitted', () => {
+    const { emitter, display, spinner } = setup()
+    toolCycle(emitter, 'glob', { pattern: '**/*' })
+    // Should only have history, no task board markers
+    assert.ok(!spinner.prefixText.includes('○'))
+    assert.ok(!spinner.prefixText.includes('⟳'))
     display.stop()
   })
 })

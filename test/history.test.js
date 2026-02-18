@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { truncate, labelForTool, formatElapsed, pushHistory, HISTORY_SIZE } from '../src/ui/history.js'
+import { truncate, labelForTool, formatElapsed, pushHistory, formatTaskBoard, HISTORY_SIZE } from '../src/ui/history.js'
 
 describe('truncate', () => {
   it('returns the string unchanged when within limit', () => {
@@ -44,8 +44,24 @@ describe('labelForTool', () => {
     assert.equal(labelForTool('grep', { pattern: 'console\\.log' }), 'grep: console\\.log')
   })
 
-  it('formats bash with command', () => {
-    assert.equal(labelForTool('bash', { command: 'ls -la' }), 'bash: ls -la')
+  it('formats list_dir with dirPath', () => {
+    assert.equal(labelForTool('list_dir', { dirPath: 'src' }), 'ls: src')
+  })
+
+  it('formats list_dir with default dirPath', () => {
+    assert.equal(labelForTool('list_dir', {}), 'ls: .')
+  })
+
+  it('formats file_info with filePath', () => {
+    assert.equal(labelForTool('file_info', { filePath: 'package.json' }), 'info: package.json')
+  })
+
+  it('formats count_lines with pattern', () => {
+    assert.equal(labelForTool('count_lines', { pattern: '**/*.js' }), 'wc: **/*.js')
+  })
+
+  it('formats project_info', () => {
+    assert.equal(labelForTool('project_info', {}), 'project: info')
   })
 
   it('formats edit_file with filePath', () => {
@@ -54,6 +70,38 @@ describe('labelForTool', () => {
 
   it('formats write_file with filePath', () => {
     assert.equal(labelForTool('write_file', { filePath: '/out/main.py' }), 'write: /out/main.py')
+  })
+
+  it('formats eval_summary with verdict', () => {
+    assert.equal(labelForTool('eval_summary', { verdict: 'moderate' }), 'eval: summary (moderate)')
+  })
+
+  it('formats eval_summary without verdict', () => {
+    assert.equal(labelForTool('eval_summary', {}), 'eval: summary (…)')
+  })
+
+  it('formats task create with name', () => {
+    assert.equal(labelForTool('task', { action: 'create', name: 'Convert config' }), 'task: create "Convert config"')
+  })
+
+  it('formats task update with status', () => {
+    assert.equal(labelForTool('task', { action: 'update', taskId: '3', status: 'done' }), 'task: update #3 → done')
+  })
+
+  it('formats task update without status', () => {
+    assert.equal(labelForTool('task', { action: 'update', taskId: '3', name: 'Renamed' }), 'task: update #3')
+  })
+
+  it('formats task list without filter', () => {
+    assert.equal(labelForTool('task', { action: 'list' }), 'task: list')
+  })
+
+  it('formats task list with status filter', () => {
+    assert.equal(labelForTool('task', { action: 'list', status: 'in_progress' }), 'task: list (in_progress)')
+  })
+
+  it('formats task get', () => {
+    assert.equal(labelForTool('task', { action: 'get', taskId: '2' }), 'task: get #2')
   })
 
   it('falls back to tool name for unknown tools', () => {
@@ -140,5 +188,51 @@ describe('pushHistory', () => {
     const labels = ['a', 'b', 'c', 'd', 'e']
     for (const l of labels) h = pushHistory(h, l)
     assert.deepEqual(h, labels.slice(-HISTORY_SIZE))
+  })
+})
+
+describe('formatTaskBoard', () => {
+  it('returns empty array for no tasks', () => {
+    assert.deepEqual(formatTaskBoard([]), [])
+    assert.deepEqual(formatTaskBoard(null), [])
+    assert.deepEqual(formatTaskBoard(undefined), [])
+  })
+
+  it('renders todo tasks with dim circle', () => {
+    const lines = formatTaskBoard([{ id: '1', name: 'Setup', status: 'todo' }])
+    assert.equal(lines.length, 1)
+    assert.ok(lines[0].includes('Setup'))
+    assert.ok(lines[0].includes('○'))
+  })
+
+  it('renders in_progress tasks in yellow', () => {
+    const lines = formatTaskBoard([{ id: '2', name: 'Converting', status: 'in_progress' }])
+    assert.equal(lines.length, 1)
+    assert.ok(lines[0].includes('Converting'))
+    // yellow ANSI code \x1b[33m
+    assert.ok(lines[0].includes('\x1b[33m'))
+  })
+
+  it('renders done tasks with strikethrough and dim', () => {
+    const lines = formatTaskBoard([{ id: '3', name: 'Finished', status: 'done' }])
+    assert.equal(lines.length, 1)
+    assert.ok(lines[0].includes('Finished'))
+    // green check
+    assert.ok(lines[0].includes('\x1b[32m'))
+    // strikethrough \x1b[9m
+    assert.ok(lines[0].includes('\x1b[9m'))
+  })
+
+  it('renders mixed statuses in order', () => {
+    const tasks = [
+      { id: '1', name: 'Done task', status: 'done' },
+      { id: '2', name: 'Active task', status: 'in_progress' },
+      { id: '3', name: 'Pending task', status: 'todo' },
+    ]
+    const lines = formatTaskBoard(tasks)
+    assert.equal(lines.length, 3)
+    assert.ok(lines[0].includes('Done task'))
+    assert.ok(lines[1].includes('Active task'))
+    assert.ok(lines[2].includes('Pending task'))
   })
 })

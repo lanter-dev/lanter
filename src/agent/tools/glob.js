@@ -1,6 +1,7 @@
 import { tool } from '@openai/agents'
 import { z } from 'zod'
 import fg from 'fast-glob'
+import { truncateToolOutput } from './truncate.js'
 
 export function createGlobTool({ inputDir }) {
   return tool({
@@ -8,18 +9,29 @@ export function createGlobTool({ inputDir }) {
     description: 'Search for files matching a glob pattern in the input directory. Returns matching file paths.',
     parameters: z.object({
       pattern: z.string().describe('The glob pattern to match (e.g., "**/*.js", "src/**/*.py")'),
+      type: z.enum(['files', 'directories', 'all']).optional().describe('What to match: "files" (default), "directories", or "all"'),
     }),
-    async execute({ pattern }) {
+    async execute({ pattern, type = 'files' }) {
       try {
-        const files = await fg(pattern, {
+        const opts = {
           cwd: inputDir,
           dot: false,
-          onlyFiles: true,
-        })
+        }
+        if (type === 'directories') {
+          opts.onlyDirectories = true
+          opts.markDirectories = true
+        } else if (type === 'all') {
+          opts.onlyFiles = false
+          opts.markDirectories = true
+        } else {
+          opts.onlyFiles = true
+        }
+        const files = await fg(pattern, opts)
         if (files.length === 0) {
           return 'No files matched the pattern.'
         }
-        return files.sort().join('\n')
+        const result = files.sort().join('\n')
+        return truncateToolOutput(result)
       } catch (err) {
         return `Error searching files: ${err.message}`
       }

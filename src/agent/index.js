@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createTools } from './tools/index.js'
 import { getModelProvider } from '../providers/index.js'
+import { createContextTrimmer } from './context-trimmer.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -19,14 +20,15 @@ const noopEmitter = { emit: () => {} }
 export async function runAgent({ config, command, inputDir, outputDir, destination, emitter }) {
   const em = emitter || noopEmitter
 
-  // Disable tracing for non-OpenAI providers
   if (config.provider !== 'openai') {
     setTracingDisabled(true)
   }
 
   const model = getModelProvider(config)
   const systemPrompt = await loadPrompt(command)
-  const tools = createTools({ inputDir, outputDir })
+  const { tools, getTasks, getSummary } = createTools({ inputDir, outputDir, command })
+
+  em.emit('tasks:init', { getTasks })
 
   const agent = new Agent({
     name: `lanter-${command}`,
@@ -37,10 +39,11 @@ export async function runAgent({ config, command, inputDir, outputDir, destinati
 
   let userMessage
   if (command === 'evaluate') {
-    userMessage = `Evaluate the codebase at: ${inputDir}`
-    if (destination) {
-      userMessage += `\nTarget conversion language: ${destination}`
-    }
+    userMessage = [
+      `Evaluate the codebase at: ${inputDir}`,
+      `Target conversion language: ${destination}`,
+      `Write evaluation documents to: ${outputDir}`,
+    ].join('\n')
   } else if (command === 'run') {
     userMessage = [
       `Convert the codebase at: ${inputDir}`,
@@ -75,11 +78,19 @@ export async function runAgent({ config, command, inputDir, outputDir, destinati
     em.emit('tool:done', { toolName: tool.name, result })
   })
 
-  const callModelInputFilter = ({ modelData }) => {
-    em.emit('inference:start', { agentName: agent.name })
-    return modelData
-  }
+  const callModelInputFilter = createContextTrimmer({
+    maxContextTokens: config.maxContextTokens,
+    getTasks,
+    emitter: em,
+    agentName: agent.name,
+  })
 
   const result = await runner.run(agent, userMessage, { callModelInputFilter, maxTurns: MAX_TURNS })
-  return result.finalOutput
+
+  if (command === 'evaluate' && getSummary) {
+    const summary = getSummary()
+    if (summary) return { summary, finalOutput: result.finalOutput }
+  }
+
+  return { finalOutput: result.finalOutput }
 }
