@@ -1,0 +1,39 @@
+{
+  "name": "lanter",
+  "version": "0.1.0",
+  "description": "CLI tool that uses agentic AI to convert codebases between programming languages",
+  "type": "module",
+  "bin": {
+    "lanter": "./bin/lanter.js"
+  },
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "code-conversion",
+    "transpiler",
+    "agent"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "@clack/prompts": "^1.0.1",
+    "@openai/agents": "^0.4.11",
+    "@openai/agents-extensions": "^0.3.7",
+    "chalk": "^5.0.0",
+    "commander": "^14.0.3",
+    "cosmiconfig": "^9.0.0",
+    "fast-glob": "^3.3.0",
+    "openai": "^6.22.0",
+    "ora": "^9.3.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^16.0.0"
+  }
+}
