@@ -23,9 +23,7 @@ const noopEmitter = { emit: () => {} }
 export async function runAgent({ config, command, inputDir, outputDir, destination, emitter }) {
   const em = emitter || noopEmitter
 
-  if (config.provider !== 'openai') {
-    setTracingDisabled(true)
-  }
+  setTracingDisabled(true)
 
   const model = getModelProvider(config)
   const systemPrompt = await loadPrompt(command)
