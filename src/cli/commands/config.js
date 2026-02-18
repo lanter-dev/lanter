@@ -1,4 +1,6 @@
+import { select, isCancel, spinner } from '@clack/prompts'
 import { loadConfig, setConfigValue, getConfigValue, getConfigPath } from '../../config/index.js'
+import { fetchModels } from '../../providers/models.js'
 import { logStep, logSuccess, logError } from '../../ui/index.js'
 
 export function registerConfigCommand(program) {
@@ -42,6 +44,54 @@ export function registerConfigCommand(program) {
         logError(`Failed to get config: ${err.message}`)
         process.exit(1)
       }
+    })
+
+  configCmd
+    .command('model')
+    .description('Interactively select a model for the current provider')
+    .option('-p, --provider <name>', 'Provider to list models for (overrides config)')
+    .action(async (options) => {
+      let config
+      try {
+        config = await loadConfig(options.provider ? { provider: options.provider } : {})
+      } catch (err) {
+        logError(`Failed to load config: ${err.message}`)
+        process.exit(1)
+      }
+
+      const provider = config.provider
+      const s = spinner()
+      s.start(`Fetching models from ${provider}...`)
+
+      let models
+      try {
+        models = await fetchModels(provider, config)
+        s.stop(`Found ${models.length} model${models.length === 1 ? '' : 's'} for ${provider}`)
+      } catch (err) {
+        s.stop(`Failed to fetch models: ${err.message}`)
+        logError(err.message)
+        process.exit(1)
+      }
+
+      if (models.length === 0) {
+        logError(`No models returned from ${provider}`)
+        process.exit(1)
+      }
+
+      const chosen = await select({
+        message: `Select a model (current: ${config.model ?? 'none'})`,
+        options: models.map(m => ({ value: m, label: m })),
+        initialValue: config.model,
+      })
+
+      if (isCancel(chosen)) {
+        logStep('Cancelled — no changes made')
+        process.exit(0)
+      }
+
+      await setConfigValue('model', chosen)
+      logSuccess(`Model set to: ${chosen}`)
+      logStep(`Config file: ${getConfigPath()}`)
     })
 
   configCmd

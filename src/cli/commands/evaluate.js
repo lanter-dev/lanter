@@ -2,8 +2,10 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { loadConfig } from '../../config/index.js'
 import { runAgent } from '../../agent/index.js'
-import { saveArtifact } from '../../project/index.js'
+import { saveArtifact, ensureProjectDir } from '../../project/index.js'
 import { startTask, endTask, logStep, logError, showReport } from '../../ui/index.js'
+import { createEmitter } from '../../events/emitter.js'
+import { createDisplay } from '../../ui/display.js'
 
 export function registerEvaluateCommand(program) {
   program
@@ -35,16 +37,20 @@ export function registerEvaluateCommand(program) {
         logStep(`Target language: ${options.destination}`)
       }
 
-      const agentSpinner = startTask('Running evaluation agent...')
+      const projectDir = await ensureProjectDir(inputDir)
+      const emitter = createEmitter()
+      const display = createDisplay(emitter, { auditLogPath: path.join(projectDir, 'events.log') })
+
       try {
         const report = await runAgent({
           config,
           command: 'evaluate',
           inputDir,
           destination: options.destination,
+          emitter,
         })
 
-        endTask(agentSpinner, 'Evaluation complete')
+        display.stop()
 
         // Save the report as an artifact
         const artifactPath = await saveArtifact(inputDir, 'evaluation-report.md', report)
@@ -52,7 +58,8 @@ export function registerEvaluateCommand(program) {
 
         showReport(report)
       } catch (err) {
-        endTask(agentSpinner, `Evaluation failed: ${err.message}`, false)
+        display.stop()
+        logError(`Evaluation failed: ${err.message}`)
         process.exit(1)
       }
     })

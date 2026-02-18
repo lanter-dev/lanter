@@ -1,4 +1,4 @@
-import { Agent, run, setTracingDisabled } from '@openai/agents'
+import { Agent, Runner, setTracingDisabled } from '@openai/agents'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +12,13 @@ async function loadPrompt(name) {
   return fs.promises.readFile(promptPath, 'utf-8')
 }
 
-export async function runAgent({ config, command, inputDir, outputDir, destination }) {
+const MAX_TURNS = 500
+
+const noopEmitter = { emit: () => {} }
+
+export async function runAgent({ config, command, inputDir, outputDir, destination, emitter }) {
+  const em = emitter || noopEmitter
+
   // Disable tracing for non-OpenAI providers
   if (config.provider !== 'openai') {
     setTracingDisabled(true)
@@ -43,6 +49,37 @@ export async function runAgent({ config, command, inputDir, outputDir, destinati
     ].join('\n')
   }
 
-  const result = await run(agent, userMessage)
+  const runner = new Runner()
+
+  runner.on('agent_start', (_context, ag) => {
+    em.emit('agent:start', { agentName: ag.name })
+  })
+
+  runner.on('agent_end', (_context, ag, output) => {
+    em.emit('agent:done', { agentName: ag.name, output })
+  })
+
+  runner.on('agent_tool_start', (_context, _ag, tool, { toolCall }) => {
+    let args = {}
+    try {
+      args = typeof toolCall.arguments === 'string'
+        ? JSON.parse(toolCall.arguments)
+        : (toolCall.arguments || {})
+    } catch {
+      args = {}
+    }
+    em.emit('tool:start', { toolName: tool.name, args })
+  })
+
+  runner.on('agent_tool_end', (_context, _ag, tool, result) => {
+    em.emit('tool:done', { toolName: tool.name, result })
+  })
+
+  const callModelInputFilter = ({ modelData }) => {
+    em.emit('inference:start', { agentName: agent.name })
+    return modelData
+  }
+
+  const result = await runner.run(agent, userMessage, { callModelInputFilter, maxTurns: MAX_TURNS })
   return result.finalOutput
 }

@@ -2,7 +2,10 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { loadConfig } from '../../config/index.js'
 import { runAgent } from '../../agent/index.js'
+import { ensureProjectDir } from '../../project/index.js'
 import { startTask, endTask, logStep, logError, logSuccess } from '../../ui/index.js'
+import { createEmitter } from '../../events/emitter.js'
+import { createDisplay } from '../../ui/display.js'
 
 export function registerRunCommand(program) {
   program
@@ -44,7 +47,10 @@ export function registerRunCommand(program) {
       logStep(`Output: ${outputDir}`)
       logStep(`Target language: ${options.destination}`)
 
-      const agentSpinner = startTask('Running conversion agent...')
+      const projectDir = await ensureProjectDir(inputDir)
+      const emitter = createEmitter()
+      const display = createDisplay(emitter, { auditLogPath: path.join(projectDir, 'events.log') })
+
       try {
         const result = await runAgent({
           config,
@@ -52,9 +58,10 @@ export function registerRunCommand(program) {
           inputDir,
           outputDir,
           destination: options.destination,
+          emitter,
         })
 
-        endTask(agentSpinner, 'Conversion complete')
+        display.stop()
         logSuccess(`Converted code written to: ${outputDir}`)
 
         if (result) {
@@ -62,7 +69,8 @@ export function registerRunCommand(program) {
           console.log(result)
         }
       } catch (err) {
-        endTask(agentSpinner, `Conversion failed: ${err.message}`, false)
+        display.stop()
+        logError(`Conversion failed: ${err.message}`)
         process.exit(1)
       }
     })
