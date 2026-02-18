@@ -316,7 +316,8 @@ describe('audit log', () => {
     emitter.emit('tool:done', { toolName: 'glob', result: 'files' })
     emitter.emit('agent:done', { agentName: 'test', output: '' })
 
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    // Wait for the write stream to flush on slower CI runners
+    await new Promise((resolve) => setTimeout(resolve, 200))
 
     const contents = fs.default.readFileSync(logPath, 'utf-8')
     assert.ok(contents.includes('inference:start'))
