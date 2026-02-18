@@ -1,7 +1,11 @@
 import { Command } from 'commander'
+import { createRequire } from 'node:module'
 import { registerEvaluateCommand } from './commands/evaluate.js'
 import { registerRunCommand } from './commands/run.js'
 import { registerConfigCommand } from './commands/config.js'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../../package.json')
 
 export function createProgram() {
   const program = new Command()
@@ -9,7 +13,7 @@ export function createProgram() {
   program
     .name('lanter')
     .description('CLI tool that uses agentic AI to convert codebases between programming languages')
-    .version('0.1.0')
+    .version(version)
     .option('-p, --provider <name>', 'AI provider (openai, anthropic, ollama)')
     .option('-m, --model <name>', 'Model name to use')
 
