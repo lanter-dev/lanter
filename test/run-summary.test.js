@@ -59,13 +59,13 @@ describe('run_summary tool', () => {
     }
   })
 
-  it('accepts summary without optional notes', async () => {
+  it('defaults notes to empty string when omitted', async () => {
     const { tool, getSummary } = createRunSummaryTool()
     const withoutNotes = { ...validSummary }
     delete withoutNotes.notes
     await exec(tool, withoutNotes)
     const summary = getSummary()
     assert.equal(summary.status, 'complete')
-    assert.equal(summary.notes, undefined)
+    assert.equal(summary.notes, '')
   })
 })

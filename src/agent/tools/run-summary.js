@@ -33,8 +33,8 @@ export function createRunSummaryTool() {
         .describe('Warnings encountered during conversion'),
       notes: z
         .string()
-        .optional()
-        .describe('Optional notes about the conversion'),
+        .default('')
+        .describe('Notes about the conversion'),
     }),
     async execute(args) {
       summary = args

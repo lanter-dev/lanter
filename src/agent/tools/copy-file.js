@@ -14,8 +14,8 @@ export function createCopyFileTool({ inputDir, outputDir }) {
         .describe('Path relative to the input directory of the file to copy'),
       destPath: z
         .string()
-        .optional()
-        .describe('Path relative to the output directory. Defaults to the same relative path as the source.'),
+        .default('')
+        .describe('Path relative to the output directory. Empty string means same relative path as source.'),
     }),
     async execute({ filePath, destPath }) {
       if (!outputDir) {

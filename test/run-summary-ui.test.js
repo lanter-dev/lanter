@@ -71,10 +71,8 @@ describe('formatRunSummary', () => {
     assert.ok(!output.includes('Warnings:'))
   })
 
-  it('omits notes section when not provided', () => {
-    const noNotes = { ...fullSummary }
-    delete noNotes.notes
-    const output = formatRunSummary(noNotes)
+  it('omits notes section when empty string', () => {
+    const output = formatRunSummary({ ...fullSummary, notes: '' })
     assert.ok(!output.includes('Notes:'))
   })
 

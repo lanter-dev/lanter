@@ -12,12 +12,12 @@ export function createGrepTool({ inputDir }) {
     description: 'Search file contents for a pattern using grep. Returns matching lines with file paths and line numbers.',
     parameters: z.object({
       pattern: z.string().describe('The search pattern (regex supported)'),
-      glob: z.string().optional().describe('Optional glob to filter files (e.g., "*.js")'),
+      glob: z.string().default('').describe('Glob to filter files (e.g., "*.js"). Empty string means all files.'),
     }),
     async execute({ pattern, glob }) {
       try {
         const args = ['-rn', '--color=never']
-        if (glob) {
+        if (glob && glob.length > 0) {
           args.push(`--include=${glob}`)
         }
         args.push(pattern, '.')

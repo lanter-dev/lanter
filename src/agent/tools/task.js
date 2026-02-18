@@ -11,11 +11,11 @@ export function createTaskTool() {
       'Manage tasks to plan and track progress. Actions: create (new task), update (change status/details), get (single task), list (all or filtered).',
     parameters: z.object({
       action: z.enum(['create', 'update', 'get', 'list']).describe('The action to perform'),
-      taskId: z.string().optional().describe('Task ID (required for get/update)'),
-      name: z.string().optional().describe('Task name (required for create, optional for update)'),
-      description: z.string().optional().describe('Task description'),
-      status: z.enum(['todo', 'in_progress', 'done']).optional().describe('Task status (for update or list filter)'),
-      priority: z.enum(['low', 'medium', 'high']).optional().describe('Task priority (default: medium)'),
+      taskId: z.string().default('').describe('Task ID (required for get/update)'),
+      name: z.string().default('').describe('Task name (required for create, optional for update)'),
+      description: z.string().default('').describe('Task description'),
+      status: z.string().default('').describe('Task status: "todo", "in_progress", "done" (for update or list filter)'),
+      priority: z.string().default('').describe('Task priority: "low", "medium", "high"'),
     }),
     async execute(args) {
       const { action } = args

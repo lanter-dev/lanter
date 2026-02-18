@@ -9,9 +9,9 @@ export function createListDirTool({ inputDir }) {
     name: 'list_dir',
     description: 'List the contents of a directory. Returns entries with type indicators and file sizes. Paths are relative to the input directory.',
     parameters: z.object({
-      dirPath: z.string().optional().describe('Directory path relative to input directory (defaults to ".")'),
+      dirPath: z.string().default('.').describe('Directory path relative to input directory'),
     }),
-    async execute({ dirPath = '.' }) {
+    async execute({ dirPath }) {
       const resolved = path.resolve(inputDir, dirPath)
       if (!resolved.startsWith(inputDir)) {
         return 'Error: path is outside the input directory.'
