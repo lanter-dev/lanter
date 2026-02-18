@@ -33,7 +33,7 @@
     "url": "https://github.com/lanter-dev/lanter/issues"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "publishConfig": {
     "access": "public"
