@@ -9,6 +9,8 @@ import { createCountLinesTool } from './count-lines.js'
 import { createProjectInfoTool } from './project-info.js'
 import { createTaskTool } from './task.js'
 import { createEvalSummaryTool } from './eval-summary.js'
+import { createRunSummaryTool } from './run-summary.js'
+import { createCopyFileTool } from './copy-file.js'
 
 export function createTools({ inputDir, outputDir, command }) {
   const { tool: taskTool, getTasks } = createTaskTool()
@@ -34,6 +36,15 @@ export function createTools({ inputDir, outputDir, command }) {
     const evalSummary = createEvalSummaryTool()
     tools.push(evalSummary.tool)
     getSummary = evalSummary.getSummary
+  }
+
+  if (command === 'run') {
+    const runSummary = createRunSummaryTool()
+    tools.push(runSummary.tool)
+    getSummary = runSummary.getSummary
+    if (outputDir) {
+      tools.push(createCopyFileTool({ inputDir, outputDir }))
+    }
   }
 
   return { tools, getTasks, getSummary }

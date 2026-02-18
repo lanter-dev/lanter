@@ -2,7 +2,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { loadConfig } from '../../config/index.js'
 import { runAgent } from '../../agent/index.js'
-import { ensureProjectDir } from '../../project/index.js'
+import { ensureProjectDir, saveArtifact } from '../../project/index.js'
 import { startTask, endTask, logStep, logError, logSuccess } from '../../ui/index.js'
 import { createEmitter } from '../../events/emitter.js'
 import { createDisplay } from '../../ui/display.js'
@@ -59,6 +59,7 @@ export function registerEvaluateCommand(program) {
         console.log()
 
         if (summary) {
+          await saveArtifact(inputDir, 'evaluation/summary.json', JSON.stringify(summary, null, 2))
           console.log(formatSummary(summary, outputDir))
         } else if (finalOutput) {
           console.log(finalOutput)

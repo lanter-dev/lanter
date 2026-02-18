@@ -80,6 +80,18 @@ describe('labelForTool', () => {
     assert.equal(labelForTool('eval_summary', {}), 'eval: summary (…)')
   })
 
+  it('formats run_summary with status', () => {
+    assert.equal(labelForTool('run_summary', { status: 'complete' }), 'run: summary (complete)')
+  })
+
+  it('formats run_summary without status', () => {
+    assert.equal(labelForTool('run_summary', {}), 'run: summary (…)')
+  })
+
+  it('formats copy_file with filePath', () => {
+    assert.equal(labelForTool('copy_file', { filePath: 'README.md' }), 'copy: README.md')
+  })
+
   it('formats task create with name', () => {
     assert.equal(labelForTool('task', { action: 'create', name: 'Convert config' }), 'task: create "Convert config"')
   })

@@ -16,6 +16,8 @@ export function labelForTool(toolName, args) {
   if (toolName === 'edit_file') return `edit: ${truncate(args.filePath)}`
   if (toolName === 'write_file') return `write: ${truncate(args.filePath)}`
   if (toolName === 'eval_summary') return `eval: summary (${args.verdict || '…'})`
+  if (toolName === 'run_summary') return `run: summary (${args.status || '…'})`
+  if (toolName === 'copy_file') return `copy: ${truncate(args.filePath)}`
   if (toolName === 'task') {
     const { action } = args
     if (action === 'create') return `task: create ${truncate(args.name ? `"${args.name}"` : '', 50)}`

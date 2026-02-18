@@ -1,6 +1,6 @@
 export const defaults = {
   provider: 'openai',
-  model: 'gpt-4.1',
+  model: 'gpt-5.2',
   maxContextTokens: 128000,
   openai: {
     apiKey: '',

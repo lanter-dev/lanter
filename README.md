@@ -72,7 +72,6 @@ Config precedence (highest to lowest):
 1. CLI flags (`--provider`, `--model`)
 2. Environment variables (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OLLAMA_BASE_URL`, etc.)
 3. Config file (`~/.lanter/config.json`)
-4. Defaults (OpenAI, `gpt-4.1`)
 
 ## Contributing
 
