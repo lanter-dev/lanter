@@ -9,6 +9,7 @@ export const defaults = {
     apiKey: '',
   },
   ollama: {
+    apiKey: '',
     baseUrl: 'http://localhost:11434/v1',
   },
 }

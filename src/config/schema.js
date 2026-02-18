@@ -11,6 +11,7 @@ export const configSchema = z.object({
     apiKey: z.string().optional(),
   }).optional(),
   ollama: z.object({
+    apiKey: z.string().optional(),
     baseUrl: z.string().url().optional(),
   }).optional(),
 })
